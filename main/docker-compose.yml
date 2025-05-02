@@ -1,0 +1,64 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"  # Expose to host as 3307
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: pastebin
+    volumes:
+      - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-hmysql", "-uroot", "-padmin"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    command:
+      - --max_connections=500
+
+  app:
+    build: ./paste-service
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./paste-service/.env
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./user-service/.env
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  web-ui:
+    build: ./web-ui
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./web-ui/.env
+    restart: unless-stopped
+    depends_on:
+      - user-service
+      - app
+
+  locust:
+    build: ./locust
+    ports:
+      - "8089:8089"
+    environment:
+      - TARGET_HOST=http://app:3001
+    depends_on:
+      - app
+      - mysql
+    command: ["locust", "-f", "locustfile.py", "--host=http://app:3001"]
