@@ -6,6 +6,13 @@ const path = require('path');
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
+const { connectRabbitMQ } = require('./services/rabbitmq');
+
+connectRabbitMQ()
+    .then(() => console.log('Web UI connected to RabbitMQ'))
+    .catch(err => console.error('RabbitMQ connection failed:', err));
+
+
 
 // Middleware
 app.use(express.urlencoded({ extended: true }));

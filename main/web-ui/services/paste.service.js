@@ -1,18 +1,24 @@
 const axios = require('axios');
 
+
 const API_BASE_URL = process.env.PASTE_SERVICE_URL || 'http://app:3001';
 
-// Tạo paste mới
+
+const { sendToQueueWithResponse } = require('./rabbitmq');
+
 const createPaste = async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/paste`, data);
-    return response.data;
+    const response = await sendToQueueWithResponse({
+        action: 'createPaste',
+        data: data
+    });
+    return response; // { status: 'success', pasteId: '...' }
 };
 
-// Lấy paste theo ID
+// Lấy paste theo ID → vẫn dùng HTTP
 const getPasteById = async (id) => {
     try {
         const response = await axios.get(`${API_BASE_URL}/paste/${id}`);
-        return response.data.paste; // ✅ Trả về paste object
+        return response.data.paste;
     } catch (error) {
         if (error.response && error.response.status === 404) {
             const notFoundError = new Error('Paste not found');

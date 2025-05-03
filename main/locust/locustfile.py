@@ -51,7 +51,6 @@ class TestingLocust(HttpUser):
         form_data = {
             "content": content,
             "title": title,
-            "language": language,
             "expires_in": expires_in,
             "privacy": privacy
         }
