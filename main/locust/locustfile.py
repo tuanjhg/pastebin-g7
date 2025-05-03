@@ -87,7 +87,7 @@ class TestingLocust(HttpUser):
     @task(1)
     def visit_paste_list(self):
 
-        with self.client.get("/paste_list?page=1", name="/paste_list?page", catch_response=True) as response:
+        with self.client.get("/public", name="/public", catch_response=True) as response:
             if response.status_code == 200:
                 response.success()
                 logger.info(f"Visit paste list successfully (status={response.status_code})")

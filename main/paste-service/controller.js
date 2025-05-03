@@ -5,8 +5,9 @@ const createPaste = async (req, res) => {
     try {
         const { content, title = '',
               expires_in,
-                privacy = 'public' 
+                privacy = 'PUBLIC' 
             } = req.body;
+            console.log('req.body =', req.body);
 
         if (!content?.trim()) {
             return res.status(400).render('create_paste', { error: 'Content is required' });
@@ -16,7 +17,7 @@ const createPaste = async (req, res) => {
             content: content.trim(),
             title: title.trim(),
             expiresIn: expires_in,
-            privacy
+            privacy: privacy
         });
 
         return res.redirect(302, `/paste/${result.id}`);
