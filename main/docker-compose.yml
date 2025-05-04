@@ -65,11 +65,11 @@ services:
     ports:
       - "8089:8089"
     environment:
-      - TARGET_HOST=http://app:3001
+      - TARGET_HOST=http://web-ui:3000
     depends_on:
       - app
       - mysql
-    command: ["locust", "-f", "locustfile.py", "--host=http://app:3001"]
+    command: ["locust", "-f", "locustfile.py", "--host=http://web-ui:3000"]
     networks:
       - my-net
 
@@ -79,6 +79,13 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    restart: unless-stopped
+    networks:
+      - my-net
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
     restart: unless-stopped
     networks:
       - my-net

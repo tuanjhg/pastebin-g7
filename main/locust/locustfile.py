@@ -3,8 +3,7 @@ import os
 import random
 import secrets
 import string
-from locust import between, task
-from locust import HttpUser
+from locust import between, task, HttpUser
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,41 +31,43 @@ class TestingLocust(HttpUser):
     @task(2)
     def visit_main_page(self):
         with self.client.get("/", name="/", catch_response=True) as response:
-            if response.status_code == 200 or response.status_code == 304:
+            if response.status_code in (200, 304):
                 response.success()
-                logging.info(f"Visit main page (status={response.status_code})")
+                logger.info(f"Visit main page (status={response.status_code})")
             elif response.status_code == 0:
                 response.failure("Connection failed: No response")
-                logging.error(f"Failed to visit main page (status={response.status_code}): No response")
+                logger.error(f"Failed to visit main page (status={response.status_code}): No response")
             else:
                 response.failure(response.text)
-                logging.error(f"Failed to visit main page (status={response.status_code}): {response.text}")
+                logger.error(f"Failed to visit main page (status={response.status_code}): {response.text}")
 
     @task(3)
     def create_paste(self):
         content = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(200))
         title = ''.join(secrets.choice(string.ascii_letters) for _ in range(10)) if secrets.randbelow(2) else ""
-        expires_in = secrets.choice(["", "0.2", "1", "60", "1440", "10080", "43200"])
-        privacy = secrets.choice(["public", "private"])
+        expires_in = secrets.choice(["", "0.2", "1", "60", "1440", "10080", "43200"])  # minutes
+        visibility = secrets.choice(["PUBLIC", "PRIVATE"])
+
         form_data = {
             "content": content,
             "title": title,
             "expires_in": expires_in,
-            "privacy": privacy
+            "visibility": visibility  # ✅ đúng tên trường backend cần
         }
+
         with self.client.post("/paste", data=form_data, headers={"Content-Type": "application/x-www-form-urlencoded"},
-                               allow_redirects=False, catch_response=True) as response:
+                              allow_redirects=False, catch_response=True) as response:
             if response.status_code == 302:
                 paste_id = response.headers.get('Location', '').split('/')[-1]
                 if paste_id:
                     self.paste_ids.append(paste_id)
                 response.success()
-                logging.info(f"Created new paste (status={response.status_code})")
+                logger.info(f"Created new paste (status={response.status_code})")
             else:
                 error_message = "Connection failed: No response" if response.status_code == 0 else response.text
                 response.failure(error_message)
-                logging.error(f"Failed to create paste (status={response.status_code}): {error_message}")
-            
+                logger.error(f"Failed to create paste (status={response.status_code}): {error_message}")
+
     @task(2)
     def visit_paste(self):
         if self.paste_ids:
@@ -85,7 +86,6 @@ class TestingLocust(HttpUser):
 
     @task(1)
     def visit_paste_list(self):
-
         with self.client.get("/public", name="/public", catch_response=True) as response:
             if response.status_code == 200:
                 response.success()
@@ -96,7 +96,6 @@ class TestingLocust(HttpUser):
             else:
                 response.failure(response.text)
                 logger.error(f"Failed to load paste list (status={response.status_code}): {response.text}")
-
 
     @task(1)
     def visit_stats(self):

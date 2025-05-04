@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Paste - <%= paste.id %></title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="bg-gradient-to-r from-teal-400 via-blue-500 to-purple-600 min-h-screen text-white font-sans">
@@ -90,6 +91,33 @@
           copyButton.classList.add('bg-blue-600');
         }, 2000);
       });
+    }
+
+    // Handle expiration
+    const expiresAt = "<%= paste.expires_at ? new Date(paste.expires_at).toISOString() : '' %>";
+
+
+    if (expiresAt) {
+      const expireTime = new Date(expiresAt).getTime();
+      const now = Date.now();
+      const timeLeft = expireTime - now;
+
+      function showExpiredAlert() {
+        Swal.fire({
+          icon: 'warning',
+          title: '⚠️ Paste expired',
+          text: 'This paste has expired. You will be redirected to the homepage.',
+          confirmButtonText: 'OK'
+        }).then(() => {
+          window.location.href = "/";
+        });
+      }
+
+      if (timeLeft <= 0) {
+        showExpiredAlert();
+      } else {
+        setTimeout(showExpiredAlert, timeLeft);
+      }
     }
   </script>
 
