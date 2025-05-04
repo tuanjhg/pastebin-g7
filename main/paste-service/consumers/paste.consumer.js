@@ -1,8 +1,22 @@
 const amqp = require('amqplib');
 const pasteService = require('../services/paste.service');
 
+const connectWithRetry = async (retries = 5, delay = 3000) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const connection = await amqp.connect('amqp://rabbitmq');
+            console.log('[RabbitMQ] Connected successfully');
+            return connection;
+        } catch (err) {
+            console.error(`[RabbitMQ] Connection failed (${i + 1}/${retries}):`, err.message);
+            if (i === retries - 1) throw err;
+            await new Promise(res => setTimeout(res, delay));
+        }
+    }
+};
+
 const consumeQueue = async () => {
-    const connection = await amqp.connect('amqp://rabbitmq');
+    const connection = await connectWithRetry();
     const channel = await connection.createChannel();
 
     await channel.assertQueue('paste_queue', { durable: true });
@@ -16,16 +30,13 @@ const consumeQueue = async () => {
             if (content.action === 'createPaste') {
                 console.log('[RabbitMQ] Creating paste:', content.data);
 
-                // Gọi service xử lý
                 const result = await pasteService.createPaste(content.data);
 
-                // Chuẩn bị dữ liệu phản hồi
                 const response = {
                     status: 'success',
-                    pasteId: result.id || result._id || null, // tuỳ vào bạn dùng DB gì
+                    pasteId: result.id || result._id || null,
                 };
 
-                // Gửi phản hồi nếu có replyTo
                 if (msg.properties.replyTo) {
                     channel.sendToQueue(
                         msg.properties.replyTo,
@@ -38,9 +49,8 @@ const consumeQueue = async () => {
             }
         } catch (err) {
             console.error('[RabbitMQ] Error handling message:', err);
-            // Có thể trả lỗi về client nếu cần
         } finally {
-            channel.ack(msg); // đảm bảo ack dù thành công hay lỗi
+            channel.ack(msg);
         }
     });
 

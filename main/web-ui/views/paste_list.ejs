@@ -49,7 +49,7 @@
                     <ul class="flex items-center space-x-4">
                         <% if (pagination.page > 1) { %>
                             <li>
-                                <a href="/paste_list?page=<%= pagination.page - 1 %>" class="text-white hover:text-indigo-200 text-lg font-semibold">&laquo; Prev</a>
+                                <a href="/public?page=<%= pagination.page - 1 %>" class="text-white hover:text-indigo-200 text-lg font-semibold">&laquo; Prev</a>
                             </li>
                         <% } %>
 
@@ -79,7 +79,7 @@
                                 </li>
                             <% } %>
                             <li>
-                                <a href="/paste_list?page=<%= p %>" class="text-white hover:text-indigo-200 text-lg font-semibold <%= currentPage === p ? 'text-indigo-200' : '' %>">
+                                <a href="/public?page=<%= p %>" class="text-white hover:text-indigo-200 text-lg font-semibold <%= currentPage === p ? 'text-indigo-200' : '' %>">
                                     <%= p %>
                                 </a>
                             </li>
@@ -90,7 +90,7 @@
 
                         <% if (pagination.page < pagination.totalPages) { %>
                             <li>
-                                <a href="/paste_list?page=<%= pagination.page + 1 %>" class="text-white hover:text-indigo-200 text-lg font-semibold">Next &raquo;</a>
+                                <a href="/public?page=<%= pagination.page + 1 %>" class="text-white hover:text-indigo-200 text-lg font-semibold">Next &raquo;</a>
                             </li>
                         <% } %>
                     </ul>

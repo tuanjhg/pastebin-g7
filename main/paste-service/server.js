@@ -1,18 +1,30 @@
 require('dotenv').config();
 const express = require('express');
-const app = express();
-const authRoutes = require('./routes/paste.routes');
+const cron = require('node-cron');
+const { removeExpiredPastes } = require('./services/cleanup.service');
 const { consumeQueue } = require('./consumers/paste.consumer');
 
-consumeQueue()
-    .then(() => console.log('Paste Service connected to RabbitMQ'))
-    .catch(err => console.error('RabbitMQ connection failed:', err));
-
-
+const app = express();
 app.use(express.json());
-app.use('/', authRoutes);
+app.use('/', require('./routes/paste.routes'));
+
+// 🕛 Cron job: chạy lúc 0h00 mỗi ngày
+cron.schedule('0 0 * * *', async () => {
+    console.log('[CRON] Running cleanup of expired pastes at 00:00');
+    await removeExpiredPastes();
+});
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`User service running on port ${PORT}`);
-});
+
+// ✅ Khởi động server chỉ sau khi RabbitMQ kết nối thành công
+consumeQueue()
+    .then(() => {
+        console.log('[RabbitMQ] Consumer started');
+        app.listen(PORT, () => {
+            console.log(`Paste Service running on port ${PORT}`);
+        });
+    })
+    .catch(err => {
+        console.error('[RabbitMQ] Failed to connect:', err.message);
+        process.exit(1); // Exit để Docker có thể restart container
+    });
