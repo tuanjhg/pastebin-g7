@@ -2,13 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const cron = require('node-cron');
 const { removeExpiredPastes } = require('./services/cleanup.service');
-const { consumeQueue } = require('./consumers/paste.consumer');
+const { startConsumer } = require('./consumers/paste.consumer');
 
 const app = express();
 app.use(express.json());
 app.use('/', require('./routes/paste.routes'));
 
-// 🕛 Cron job: chạy lúc 0h00 mỗi ngày
 cron.schedule('0 0 * * *', async () => {
     console.log('[CRON] Running cleanup of expired pastes at 00:00');
     await removeExpiredPastes();
@@ -16,15 +15,15 @@ cron.schedule('0 0 * * *', async () => {
 
 const PORT = process.env.PORT || 3001;
 
-// ✅ Khởi động server chỉ sau khi RabbitMQ kết nối thành công
-consumeQueue()
+startConsumer()
     .then(() => {
-        console.log('[RabbitMQ] Consumer started');
+        console.log('[Pub/Sub] Consumer started successfully');
         app.listen(PORT, () => {
             console.log(`Paste Service running on port ${PORT}`);
+            console.log('✅ Ready to receive messages from Google Cloud Pub/Sub');
         });
     })
     .catch(err => {
-        console.error('[RabbitMQ] Failed to connect:', err.message);
-        process.exit(1); // Exit để Docker có thể restart container
+        console.error('[Pub/Sub] Failed to start consumer:', err.message);
+        process.exit(1); 
     });
